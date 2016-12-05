@@ -1,6 +1,8 @@
 #include "pcd.h"
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
+#include "LASzip/laszip_dll.h"
 
 static unsigned int
 lzfDecompress(const void *const in_data, unsigned int in_len,
@@ -210,7 +212,7 @@ pcd_t *load_pcd_from_buffer(const char *buf)
     for (i = 0; i < size; i++) {
         memcpy(&(ret->points[i].x), p + sizeof(float) * i, sizeof(float));
         memcpy(&(ret->points[i].y), p + sizeof(float) * i + (sizeof(float) * size), sizeof(float));
-	memcpy(&(ret->points[i].z), p + sizeof(float) * i + (sizeof(float) * size * 2), sizeof(float));
+        memcpy(&(ret->points[i].z), p + sizeof(float) * i + (sizeof(float) * size * 2), sizeof(float));
         // ret->points[i].intensity = *(p + i + (sizeof(float) * size * 3));
         // memcpy(&(ret->points[i].timestamp), p + (sizeof(float) * size * 3) + size + (sizeof(double) * i), sizeof(double));
     }
@@ -218,3 +220,38 @@ pcd_t *load_pcd_from_buffer(const char *buf)
     free(decompressed_buf);
     return ret;
 }
+
+pcd_t *load_laz_from_file(const char *laz_path) {
+    laszip_POINTER laszip_reader;
+    laszip_header* header;
+    laszip_point* point;
+    laszip_create(&laszip_reader);
+    laszip_BOOL request_reader = 1;
+    laszip_request_compatibility_mode(laszip_reader, request_reader);
+    laszip_BOOL is_compressed = true;
+    laszip_open_reader(laszip_reader, laz_path, &is_compressed);
+    laszip_get_header_pointer(laszip_reader, &header);
+    long npoints = (header->number_of_point_records ? header->number_of_point_records : header->extended_number_of_point_records);
+    laszip_get_point_pointer(laszip_reader, &point);
+    pcd_t *ret = (pcd_t *) malloc(sizeof(pcd_t) + sizeof(point_t) * (npoints - 1));
+    ret->width = npoints;
+    ret->height = 1;
+    for(int i = 0; i < npoints; i++) {
+        laszip_read_point(laszip_reader);
+        laszip_get_coordinates_f32(laszip_reader, (laszip_F32 *)&(ret->points[i]));
+    }
+    laszip_close_reader(laszip_reader);
+    laszip_destroy(laszip_reader);
+
+    return ret;
+}
+
+
+
+
+
+
+
+
+
+

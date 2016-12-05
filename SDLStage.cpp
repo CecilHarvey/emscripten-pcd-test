@@ -1,38 +1,27 @@
 #include "SDLStage.h"
-
+#include <stdio.h>
 
 SDLStage::SDLStage (int width, int height, int frameRate, int flags) {
 
     if (SDL_Init (SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) == 0) {
-
         screen = SDL_SetVideoMode (width, height, 0, flags);
 
         if (screen != NULL) {
-
             previousTime = 0;
             ticksPerFrame = (int)(1000 / frameRate);
             active = true;
             paused = false;
-
         } else {
-
-            cerr << "Could not set video mode: " << SDL_GetError () << endl;
-
+            fprintf(stderr,  "Could not set video mode: %s.\n", SDL_GetError ());
         }
-
     } else {
-
-        cerr << "Could not initialize SDL: " << SDL_GetError () << endl;
-
+        fprintf(stderr, "Could not initialize SDL: %s.\n", SDL_GetError ());
     }
-
 }
 
 
 SDLStage::~SDLStage () {
-
     SDL_Quit ();
-
 }
 
 
@@ -94,70 +83,46 @@ void SDLStage::render () {
 }
 
 
-void SDLStage::setCaption (string title) {
-
+void SDLStage::setCaption (const char *title) {
     if (active) {
-
-        SDL_WM_SetCaption (title.c_str (), title.c_str ());
-
+        SDL_WM_SetCaption (title, title);
     }
-
 }
 
 
 void SDLStage::setEventListener (void (*listener) (SDL_Event&)) {
-
     eventListener = listener;
-
 }
 
 
 void SDLStage::setRenderCallback (void (*callback) (SDL_Surface*)) {
-
     renderCallback = callback;
-
 }
 
 
 void SDLStage::setUpdateCallback (void (*callback) (int)) {
-
     updateCallback = callback;
-
 }
 
 
 void SDLStage::step () {
-
     SDL_Event event;
 
 #ifndef EMSCRIPTEN
-
     if (paused) {
-
         if (SDL_WaitEvent (&event)) {
-
             handleEvent (event);
-
         }
-
     } else {
-
 #endif
-
         while (SDL_PollEvent (&event)) {
-
             handleEvent (event);
-
             if (!active) {
-
                 break;
-
             }
-
         }
 
         if (active) {
-
             int currentTime = SDL_GetTicks ();
             int deltaTime = currentTime - previousTime;
 

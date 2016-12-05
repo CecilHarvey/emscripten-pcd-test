@@ -16,5 +16,6 @@ typedef struct {
 } pcd_t;
 
 pcd_t *load_pcd_from_buffer(const char *buf);
+pcd_t *load_laz_from_file(const char *laz_path);
 
 #endif /* PCD_H */
